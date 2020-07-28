@@ -30,7 +30,10 @@ class HomeState extends State<Home> {
   var currently;
   var humidity;
   var windSpeed;
+  var _curIndex = 0;
+  var contents = "Home";
 
+  // getting information from API
   Future getWeather () async {
     http.Response response = await http.get("http://api.openweathermap.org/data/2.5/weather?q=Minsk&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
     var result = jsonDecode(response.body);
@@ -49,83 +52,141 @@ class HomeState extends State<Home> {
     this.getWeather();
   }
 
+  Widget _bottomNormal()=> BottomNavigationBar(
+    items: [
+      BottomNavigationBarItem(
+        backgroundColor: Colors.blue,
+        icon: Icon(
+          MdiIcons.weatherSunny,
+          size: 15,
+        ),
+        title: Text(
+          "Today",
+          style: TextStyle(fontSize: 15),
+        ),
+      ),
+      BottomNavigationBarItem(
+        backgroundColor: Colors.blue,
+        icon: Icon(
+          MdiIcons.weatherFog,
+          size: 15,
+        ),
+        title: Text(
+          "Forecast",
+          style: TextStyle(fontSize: 15),
+        ),
+      )
+    ],
+    type: BottomNavigationBarType.fixed,
+    currentIndex: _curIndex,
+    onTap: (index) {
+      setState(() {
+        _curIndex = index;
+        switch (_curIndex) {
+          case 0:
+            contents = "Today";
+            break;
+          case 1:
+            contents = "Forecast";
+            break;
+        }
+      });
+    });
+
   @override
   Widget build (BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: <Widget>[
-          Container(
-          height: MediaQuery.of(context).size.height / 3,
-          width: MediaQuery.of(context).size.width,
-            color: Colors.red,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Padding(
-                  padding: EdgeInsets.only(bottom: 10.0),
-                  child: Text(
-                    "Currently in Minsk",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w600
-                    ),
-                  ),
-                ),
-                Text(
-                  temp != null ? temp.toString() + "\u00B0" : "Loading",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 40.0,
-                      fontWeight: FontWeight.w600
-                  )
-                ),
-                Padding(
-                    padding: EdgeInsets.only(top: 10.0),
-                    child: Text(
-                        currently != null ? currently.toString() : "Loading",
+    if (_curIndex == 0 ) {
+      return Scaffold(
+          body:
+          Column(
+            children: <Widget>[
+              Container(
+                height: MediaQuery.of(context).size.height / 3,
+                width: MediaQuery.of(context).size.width,
+                color: Colors.red,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 10.0),
+                      child: Text(
+                        "Currently in Minsk",
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 14.0,
                             fontWeight: FontWeight.w600
+                        ),
+                      ),
+                    ),
+                    Text(
+                        temp != null ? temp.toString() + "\u00B0" : "Loading",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 40.0,
+                            fontWeight: FontWeight.w600
+                        )
+                    ),
+                    Padding(
+                        padding: EdgeInsets.only(top: 10.0),
+                        child: Text(
+                            currently != null ? currently.toString() : "Loading",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.w600
+                            )
                         )
                     )
-                )
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: ListView(
-                children: <Widget>[
-                  ListTile(
-                    leading: FaIcon(MdiIcons.temperatureCelsius),
-                    title: Text("Temperature"),
-                    trailing: Text(temp != null ? temp.toString() + "\u00B0" : "Loading"),
-                  ),
-                  ListTile(
-                    leading: FaIcon(FontAwesomeIcons.cloud),
-                    title: Text("Weather"),
-                    trailing: Text(description != null ? description.toString() : "Loading"),
-                  ),
-                  ListTile(
-                    leading: FaIcon(FontAwesomeIcons.sun),
-                    title: Text("Humidity"),
-                    trailing: Text(humidity != null ? humidity.toString() : "Loading"),
-                  ),
-                  ListTile(
-                    leading: FaIcon(FontAwesomeIcons.wind),
-                    title: Text("Wind Speed"),
-                    trailing: Text(windSpeed != null ? windSpeed.toString() : "Loading"),
+                  ],
+                ),
+              ),
+              Expanded(
+                  child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: ListView(
+                          children: <Widget>[
+                            ListTile(
+                              leading: FaIcon(MdiIcons.temperatureCelsius),
+                              title: Text("Temperature"),
+                              trailing: Text(temp != null ? temp.toString() + "\u00B0" : "Loading"),
+                            ),
+                            ListTile(
+                              leading: FaIcon(FontAwesomeIcons.cloud),
+                              title: Text("Weather"),
+                              trailing: Text(description != null ? description.toString() : "Loading"),
+                            ),
+                            ListTile(
+                              leading: FaIcon(FontAwesomeIcons.sun),
+                              title: Text("Humidity"),
+                              trailing: Text(humidity != null ? humidity.toString() : "Loading"),
+                            ),
+                            ListTile(
+                              leading: FaIcon(FontAwesomeIcons.wind),
+                              title: Text("Wind Speed"),
+                              trailing: Text(windSpeed != null ? windSpeed.toString() : "Loading"),
+                            )
+                          ]
+                      )
                   )
-                ]
               )
+            ],
+          ),
+          bottomNavigationBar: _bottomNormal()
+      );
+    }
+    else return Scaffold(
+        body:
+        Text(
+            "Loading",
+            style: TextStyle(
+                color: Colors.purple,
+                fontSize: 40.0,
+                fontWeight: FontWeight.w600
             )
-          )
-        ],
-      ),
+        ),
+        bottomNavigationBar: _bottomNormal()
     );
+
   }
 }
