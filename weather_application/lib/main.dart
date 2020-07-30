@@ -23,6 +23,12 @@ class Home extends StatefulWidget{
   }
 }
 
+class WeatherInfo {
+  var description;
+  var temp;
+  WeatherInfo(this.description, this.temp);
+}
+
 class HomeState extends State<Home> {
 
   var temp;
@@ -32,8 +38,16 @@ class HomeState extends State<Home> {
   var windSpeed;
   var _curIndex = 0;
   var contents = "Home";
+  var result2;
+  //var result;
 
-  // getting information from API
+  List<WeatherInfo> weatherInfo = [];
+
+  /*var time;
+  var description_for_every_3hours;
+  var temp_for_every_3hours;*/
+
+  // getting information for today from API
   Future getWeather () async {
     http.Response response = await http.get("http://api.openweathermap.org/data/2.5/weather?q=Minsk&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
     var result = jsonDecode(response.body);
@@ -46,11 +60,34 @@ class HomeState extends State<Home> {
     });
   }
 
+  // getting information for the next 5 days from API
+  Future getWeatherFor5Days () async {
+    http.Response response = await http.get("http://api.openweathermap.org/data/2.5/forecast?q=Minsk&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
+    var result = jsonDecode(response.body);
+    //result2 = result['list'][5]['weather'][0]['description'];
+
+    for (var number = 0;  number < 40; number++) {
+      WeatherInfo info = WeatherInfo(result['list'][number]['weather'][0]['description'], result['list'][number]['main']['temp']);
+      weatherInfo.add(info);
+    }
+    //print(weatherInfo.length);
+    /*setState(() {
+      this.time = result['main']['temp'];
+      this.description_for_every_3hours = result['weather'][0]['description'];
+      this.temp_for_every_3hours['weather'][0]['main'];
+    });*/
+  }
+
   @override
   void initState () {
     super.initState();
     this.getWeather();
+    this.getWeatherFor5Days();
+    //print(result2.toString());
+    //debugPrint(result2);
   }
+
+
 
   Widget _bottomNormal()=> BottomNavigationBar(
     items: [
@@ -178,7 +215,7 @@ class HomeState extends State<Home> {
     else return Scaffold(
         body:
         Text(
-            "Loading",
+            "loading",
             style: TextStyle(
                 color: Colors.purple,
                 fontSize: 40.0,
