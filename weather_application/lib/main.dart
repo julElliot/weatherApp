@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:connectivity/connectivity.dart';
 
 
 void main() {
@@ -23,11 +24,33 @@ class Home extends StatefulWidget{
   }
 }
 
+/// class description for the next 5 days every 3 hours
 class WeatherInfo {
   var description;
   var temp;
   var time;
   WeatherInfo(this.description, this.temp, this.time);
+}
+
+Column _buildButtonColumn(Color color, IconData icon, String label) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(icon, color: color),
+      Container(
+        margin: const EdgeInsets.only(top: 8),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+            color: color,
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 class HomeState extends State<Home> {
@@ -37,13 +60,22 @@ class HomeState extends State<Home> {
   var currently;
   var humidity;
   var windSpeed;
+  var pressure;
+  var windDirection;
   var _curIndex = 0;
-  var contents = "Home";
-  var result2;
+
+  /*bool checkConnection(){
+    var connectivityResult = Connectivity().checkConnectivity();
+    if ((connectivityResult == ConnectivityResult.mobile) || (connectivityResult == ConnectivityResult.wifi)) {
+      return true;
+    } else return false;
+  }
+
+  bool isInternetConnected;*/
 
   List<WeatherInfo> weatherInfo = [];
 
-  // getting information for today from API
+  /// getting information for today from API
   Future getWeather () async {
     http.Response response = await http.get("http://api.openweathermap.org/data/2.5/weather?q=Minsk&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
     var result = jsonDecode(response.body);
@@ -52,11 +84,14 @@ class HomeState extends State<Home> {
       this.description = result['weather'][0]['description'];
       this.currently = result['weather'][0]['main'];
       this.humidity = result['main']['humidity'];
+      this.pressure = result['main']['pressure'];
       this.windSpeed = result['wind']['speed'];
+      this.windDirection = result['wind']['deg'];
     });
+    setWindDirection();
   }
 
-  // getting information for the next 5 days from API
+  /// getting information for the next 5 days from API
   Future getWeatherFor5Days () async {
     http.Response response = await http.get("http://api.openweathermap.org/data/2.5/forecast?q=Minsk&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
     var result = jsonDecode(response.body);
@@ -66,6 +101,19 @@ class HomeState extends State<Home> {
       weatherInfo.add(info);
     }
   }
+
+  /// define wind direction according to the degree
+  void setWindDirection(){
+    if ((windDirection <= 10) || (windDirection >= 350)) {windDirection = 'N';}
+    else if ((windDirection > 10) && (windDirection < 80)) {windDirection = 'NE';}
+    else if ((windDirection >= 80) && (windDirection <= 100)) {windDirection = 'E';}
+    else if ((windDirection > 100) && (windDirection < 170)) {windDirection = 'SE';}
+    else if ((windDirection >= 170) && (windDirection <= 190)) {windDirection = 'S';}
+    else if ((windDirection > 190) && (windDirection < 260)) {windDirection = 'SW';}
+    else if ((windDirection >= 260) && (windDirection <= 280)) {windDirection = 'W';}
+    else if ((windDirection > 280) && (windDirection < 350)) {windDirection = 'NW';}
+  }
+
 
   @override
   void initState () {
@@ -106,20 +154,14 @@ class HomeState extends State<Home> {
     onTap: (index) {
       setState(() {
         _curIndex = index;
-        switch (_curIndex) {
-          case 0:
-            contents = "Today";
-            break;
-          case 1:
-            contents = "Forecast";
-            break;
-        }
       });
     });
 
   @override
   Widget build (BuildContext context) {
+
     if (_curIndex == 0 ) {
+
       return Scaffold(
           appBar: AppBar(
             centerTitle: true,
@@ -177,33 +219,33 @@ class HomeState extends State<Home> {
                   //color: Colors.white,
 
                   child: Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: ListView(
-                          children: <Widget>[
-                            ListTile(
-                              leading: FaIcon(MdiIcons.temperatureCelsius),
-                              title: Text("Temperature"),
-                              trailing: Text(temp != null ? (temp - 273.15).round().toString() + "\u00B0" : "Loading"),
+                      padding: EdgeInsets.fromLTRB(20, 30, 20, 30),
+                      child: Column(
+                          children: [
+                            Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+
+                            children: [
+                              _buildButtonColumn(Colors.orangeAccent, MdiIcons.weatherRainy, humidity != null ? humidity.toString() + '%' : "Loading" ),
+                              _buildButtonColumn(Colors.orangeAccent, MdiIcons.water, '?'),
+                              _buildButtonColumn(Colors.orangeAccent, MdiIcons.temperatureCelsius, pressure != null ? pressure.toString() + ' hPh' : "Loading"),
+                            ],
                             ),
-                            ListTile(
-                              leading: FaIcon(FontAwesomeIcons.cloud),
-                              title: Text("Weather"),
-                              trailing: Text(description != null ? description.toString() : "Loading"),
+                            Spacer(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildButtonColumn(Colors.orangeAccent, MdiIcons.weatherWindy, windSpeed != null ? (windSpeed * 3.6).toString() + ' km/h' : "Loading"),
+                                _buildButtonColumn(Colors.orangeAccent, MdiIcons.compass, windDirection != null ? windDirection.toString() : "Loading"),
+                              ],
                             ),
-                            ListTile(
-                              leading: FaIcon(FontAwesomeIcons.sun),
-                              title: Text("Humidity"),
-                              trailing: Text(humidity != null ? humidity.toString() : "Loading"),
-                            ),
-                            ListTile(
-                              leading: FaIcon(FontAwesomeIcons.wind),
-                              title: Text("Wind Speed"),
-                              trailing: Text(windSpeed != null ? windSpeed.toString() : "Loading"),
-                            )
+                            Spacer(),
                           ]
                       )
+
+                      )
                   )
-              )
+
             ],
           ),
           bottomNavigationBar: _bottomNormal()
@@ -220,14 +262,14 @@ class HomeState extends State<Home> {
                   children: <Widget>[
                     new ListTile(
                       leading: FaIcon(FontAwesomeIcons.wind),
-                      title: Text(weatherInfo[index].time.toString().substring(11, 16),
+                      title: Text(weatherInfo != null ? weatherInfo[index].time.toString().substring(11, 16) : "Loading",
                         style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.normal,
                             color: Colors.black
                         ),
                       ),
-                      subtitle: Text(weatherInfo[index].description,
+                      subtitle: Text(weatherInfo != null ? weatherInfo[index].description : "Loading",
                         style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.normal
@@ -254,6 +296,5 @@ class HomeState extends State<Home> {
         ),
         bottomNavigationBar: _bottomNormal()
     );
-
   }
 }
