@@ -23,13 +23,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  font_awesome_flutter: ^8.8.1
   http: ^0.12.2
   material_design_icons_flutter: ^4.0.5345
   connectivity: ^0.4.8+2
   geolocator: ^5.3.2+2
   location_permissions: ^3.0.0
   geocoder: ^0.2.1
+  share: ^0.6.2+3
+  flutter_share: ^1.0.2+1
 
 
   # The following adds the Cupertino Icons font to your application.

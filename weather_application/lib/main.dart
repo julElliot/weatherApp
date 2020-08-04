@@ -5,9 +5,10 @@ import 'package:geocoder/geocoder.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_share/flutter_share.dart';
 import 'package:http/http.dart' as http;
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:share/share.dart';
 
 void main() {
   runApp(
@@ -31,7 +32,8 @@ class WeatherInfo {
   var description;
   var temp;
   var time;
-  WeatherInfo(this.description, this.temp, this.time);
+  var icon;
+  WeatherInfo(this.description, this.temp, this.time, this.icon);
 }
 
 Column _buildButtonColumn(Color color, IconData icon, String label) {
@@ -55,24 +57,69 @@ Column _buildButtonColumn(Color color, IconData icon, String label) {
   );
 }
 
+
+
 class HomeState extends State<Home> {
 
   var temp;
   var description;
-  var currently;
+  var currently = '1111';
   var humidity;
   var windSpeed;
   var pressure;
   var windDirection;
   var _curIndex = 0;
+  var addresses;
+  var first;
+  var name;
+  var suitableIcon = MdiIcons.weatherSunny;
   bool isInternetConnected = false;
   List<WeatherInfo> weatherInfo = [];
 
+  /// Check internet connection.
+  _checkInternetConnectivity() async{
+    var result = await Connectivity().checkConnectivity();
+    if (result == ConnectivityResult.none) {
+      isInternetConnected = false;
+    }
+    else isInternetConnected = true;
+  }
+
+  Future<void> share() async {
+    String sharedText;
+    if ((temp != null) && (description != null) && (name != null)) {
+      sharedText = 'In $name today: ' + (temp - 273.15).round().toString() + '\u00B0C and $description';
+    }
+    else sharedText = 'no information';
+    await FlutterShare.share(
+        title: 'Shared weather',
+        text: sharedText,
+        linkUrl: '',
+        chooserTitle: 'Title');
+  }
+
+  Position _currentPosition;
+  _getCurrentLocation() {
+    final Geolocator geolocation = Geolocator()..forceAndroidLocationManager;
+
+    geolocation
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
+        .then((Position position) {
+      setState(() {
+        _currentPosition = position;
+      });
+    }).catchError((e) {
+      print(e);
+    });
+  }
+
   /// Getting information for today from API.
   Future getWeather () async {
-    http.Response response = await http.get("http://api.openweathermap.org/data/2.5/weather?q=Minsk&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
+    _getCurrentLocation();
+    http.Response response = await http.get("http://api.openweathermap.org/data/2.5/weather?lat=53&lon=28&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
     var result = jsonDecode(response.body);
     setState(() {
+      this.name = result['name'];
       this.temp = result['main']['temp'];
       this.description = result['weather'][0]['description'];
       this.currently = result['weather'][0]['main'];
@@ -86,12 +133,12 @@ class HomeState extends State<Home> {
 
   /// Getting information for the next 5 days from API.
   Future getWeatherFor5Days () async {
-    http.Response response = await http.get("http://api.openweathermap.org/data/2.5/forecast?q=Minsk&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
+    http.Response response = await http.get("http://api.openweathermap.org/data/2.5/forecast?lat=53&lon=28&appid=4f8c59216c41ae9c18d1af6ddc81a0c6");
     var result = jsonDecode(response.body);
 
     for (var number = 0;  number < 40; number++) {
       WeatherInfo info = WeatherInfo(result['list'][number]['weather'][0]['description'],
-          result['list'][number]['main']['temp'], result['list'][number]['dt_txt']);
+          result['list'][number]['main']['temp'], result['list'][number]['dt_txt'], MdiIcons.weatherSunny);
       weatherInfo.add(info);
     }
   }
@@ -106,6 +153,38 @@ class HomeState extends State<Home> {
     else if ((windDirection > 190) && (windDirection < 260)) {windDirection = 'SW';}
     else if ((windDirection >= 260) && (windDirection <= 280)) {windDirection = 'W';}
     else if ((windDirection > 280) && (windDirection < 350)) {windDirection = 'NW';}
+  }
+
+  _setSuitableIcon(){
+    if ((description == 'overcast clouds') || (description == 'broken clouds') || (description == 'scattered clouds')){
+      suitableIcon = MdiIcons.weatherCloudy;
+    }
+    else if (description == 'few clouds'){
+      suitableIcon = MdiIcons.weatherPartlyCloudy;
+    }
+    else if (description == 'clear sky'){
+      suitableIcon = MdiIcons.weatherSunny;
+    }
+    else if (description == 'light rain'){
+      suitableIcon = MdiIcons.weatherPartlyRainy;
+    }
+  }
+
+  _setSuitableIconFor5Days(){
+    for (var number = 0;  number < 40; number++){
+      if ((weatherInfo[number].description == 'overcast clouds') || (weatherInfo[number].description == 'broken clouds') || (weatherInfo[number].description == 'scattered clouds')){
+        weatherInfo[number].icon = MdiIcons.weatherCloudy;
+      }
+      else if (weatherInfo[number].description == 'few clouds'){
+        weatherInfo[number].icon = MdiIcons.weatherPartlyCloudy;
+      }
+      else if (weatherInfo[number].description == 'clear sky'){
+        weatherInfo[number].icon = MdiIcons.weatherSunny;
+      }
+      else if (weatherInfo[number].description == 'light rain'){
+        weatherInfo[number].icon = MdiIcons.weatherPartlyRainy;
+      }
+    }
   }
 
   @override
@@ -151,13 +230,13 @@ class HomeState extends State<Home> {
 
   @override
   Widget build (BuildContext context) {
-
-    if (isInternetConnected) {
+    _checkInternetConnectivity();
+    if (!isInternetConnected) {
       //_getCurrentLocation();
       return Scaffold(
           appBar: AppBar(
             centerTitle: true,
-            title: const Text('', style: TextStyle(
+            title: const Text('No internet connection', style: TextStyle(
                 color: Colors.black
             )),
             backgroundColor: Colors.white,
@@ -166,10 +245,12 @@ class HomeState extends State<Home> {
     }
     else {
       if (_curIndex == 0) {
+        _setSuitableIcon();
         return Scaffold(
             appBar: AppBar(
               centerTitle: true,
-              title: const Text('Minsk', style: TextStyle(
+              title: Text("Today",
+                  style: TextStyle(
                   color: Colors.black
               )),
               backgroundColor: Colors.white,
@@ -193,34 +274,28 @@ class HomeState extends State<Home> {
                       children: <Widget>[
                         Padding(
                           padding: EdgeInsets.only(bottom: 10.0),
-                          child: Text(
-                            "Currently in Minsk",
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 14.0,
-                                fontWeight: FontWeight.w600
-                            ),
-                          ),
+                          child: Icon(suitableIcon, size: 80.0,
+                              color: Colors.orangeAccent)
                         ),
                         Text(
-                            temp != null ? (temp - 273.15).round().toString() +
-                                "\u00B0" : "Loading",
+                            name != null ? name.toString() : 'Loading',
                             style: TextStyle(
                                 color: Colors.black,
-                                fontSize: 40.0,
-                                fontWeight: FontWeight.w600
+                                fontSize: 20.0,
+                                fontWeight: FontWeight.w300
                             )
                         ),
                         Padding(
                             padding: EdgeInsets.only(top: 10.0),
                             child: Text(
-                                currently != null
-                                    ? currently.toString()
+                                    ((currently != null) && (temp != null))
+                                    ? (temp - 273.15).round().toString() +
+                                        "\u00B0C" + ' | ' + currently.toString()
                                     : "Loading",
                                 style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.w600
+                                    color: Colors.blue,
+                                    fontSize: 25.0,
+                                    fontWeight: FontWeight.w300
                                 )
                             )
                         )
@@ -259,7 +334,7 @@ class HomeState extends State<Home> {
                                   _buildButtonColumn(Colors.orangeAccent,
                                       MdiIcons.weatherWindy,
                                       windSpeed != null ? (windSpeed * 3.6)
-                                          .toString() + ' km/h' : "Loading"),
+                                          .toStringAsFixed(2) + ' km/h' : "Loading"),
                                   _buildButtonColumn(
                                       Colors.orangeAccent, MdiIcons.compass,
                                       windDirection != null ? windDirection
@@ -267,6 +342,22 @@ class HomeState extends State<Home> {
                                 ],
                               ),
                               Spacer(),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  FlatButton(
+                                    onPressed: () {
+                                      share();
+                                    },
+                                    child: Text('Share',
+                                        style: TextStyle(
+                                            color: Colors.deepOrangeAccent,
+                                            fontSize: 20.0,
+                                            fontWeight: FontWeight.w300))
+                                  )
+                                ],
+                              )
                             ]
                         )
                     )
@@ -277,18 +368,26 @@ class HomeState extends State<Home> {
         );
       }
       else
+        _setSuitableIconFor5Days();
         return Scaffold(
+            appBar: AppBar(
+              centerTitle: true,
+              title: Text(name != null ? name : "loading",
+                  style: TextStyle(
+                      color: Colors.black
+                  )),
+              backgroundColor: Colors.white,
+            ),
             body: ListView.builder(
               itemBuilder: (context, index) {
                 return Card(
                     child: Padding(
-                        padding: const EdgeInsets.only(
-                            top: 20.0, bottom: 20.0, left: 16.0, right: 16.0),
+                        padding: const EdgeInsets.all(10.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             new ListTile(
-                              leading: FaIcon(FontAwesomeIcons.wind),
+                              leading: Icon(weatherInfo[index].icon, size: 50.0, color: Colors.orangeAccent),
                               title: Text(
                                 weatherInfo != null ? weatherInfo[index].time
                                     .toString().substring(11, 16) : "Loading",
