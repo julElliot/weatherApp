@@ -36,6 +36,7 @@ class WeatherInfo {
   WeatherInfo(this.description, this.temp, this.time, this.icon);
 }
 
+/// Column contains icon and its description.
 Column _buildButtonColumn(Color color, IconData icon, String label) {
   return Column(
     mainAxisSize: MainAxisSize.min,
@@ -57,13 +58,11 @@ Column _buildButtonColumn(Color color, IconData icon, String label) {
   );
 }
 
-
-
 class HomeState extends State<Home> {
 
   var temp;
   var description;
-  var currently = '1111';
+  var currently;
   var humidity;
   var windSpeed;
   var pressure;
@@ -85,6 +84,7 @@ class HomeState extends State<Home> {
     else isInternetConnected = true;
   }
 
+  /// Function to share weather as text.
   Future<void> share() async {
     String sharedText;
     if ((temp != null) && (description != null) && (name != null)) {
@@ -98,10 +98,10 @@ class HomeState extends State<Home> {
         chooserTitle: 'Title');
   }
 
+  /// Function to define current geo position.
   Position _currentPosition;
   _getCurrentLocation() {
     final Geolocator geolocation = Geolocator()..forceAndroidLocationManager;
-
     geolocation
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
         .then((Position position) {
@@ -155,6 +155,7 @@ class HomeState extends State<Home> {
     else if ((windDirection > 280) && (windDirection < 350)) {windDirection = 'NW';}
   }
 
+  /// Define suitable icon according to the description.
   _setSuitableIcon(){
     if ((description == 'overcast clouds') || (description == 'broken clouds') || (description == 'scattered clouds')){
       suitableIcon = MdiIcons.weatherCloudy;
@@ -170,6 +171,9 @@ class HomeState extends State<Home> {
     }
   }
 
+  /// Define suitable icon according to the description.
+  ///
+  /// Previous function cen be united with this one! I know
   _setSuitableIconFor5Days(){
     for (var number = 0;  number < 40; number++){
       if ((weatherInfo[number].description == 'overcast clouds') || (weatherInfo[number].description == 'broken clouds') || (weatherInfo[number].description == 'scattered clouds')){
@@ -194,6 +198,7 @@ class HomeState extends State<Home> {
     this.getWeatherFor5Days();
   }
 
+  /// Rendering bottom navigation bar.
   Widget _bottomNormal()=> BottomNavigationBar(
     backgroundColor: Colors.white,
     items: [
